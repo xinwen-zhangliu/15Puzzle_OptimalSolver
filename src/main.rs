@@ -1,11 +1,14 @@
 use std::{
-    collections::hash_map::DefaultHasher,
-    hash::{Hash, Hasher},
+    collections::{hash_map::DefaultHasher, HashMap},
+    hash::{Hash, Hasher}, fs,
 };
 
 use crate::puzzle::Puzzle;
 use rand_distr::{Distribution, Poisson};
 
+
+
+const N : usize = 4;
 #[allow(non_snake_case)]
 pub mod puzzle;
 
@@ -18,21 +21,44 @@ fn main() {
     //let state = "13 11 4 12 1 8 9 15 6 5 14 2 7 3 10 0";
 
     //let state = "11 4 0 8 6 10 5 13 12 7 14 3 1 2 9 15";
-    let mut puzzle = Puzzle::new();
-    puzzle.set_state(state, 4);
+    let mut puzzle = Puzzle::new(N);
+    puzzle.set_state(state, N);
 
-    puzzle.manhattan_dist(4);
+    dbg!(puzzle.manhattan_dist(N));
 
     // let poi = Poisson::new(1.0).unwrap();
     // let v = poi.sample(&mut rand::thread_rng());
     // println!("{} is from a Poisson(2) distribution", v);
 
-    // let vec = vec![1, 2, 3];
+    let vec1 = vec![0, 0, 0, 3];
+    let vec2 = vec![0, 0, 0, 3];
+    // 9607916165725134378
+    // 5031943648731548709
     // let tmp = vec![1, 2, 3];
-    // let mut hash = DefaultHasher::new();
-    // vec.hash(&mut hash);
-    // println!("{}", hash.finish());
-    // let mut hash = DefaultHasher::new();
-    // tmp.hash(&mut hash);
-    // println!("{}", hash.finish());
+    //dbg!(vec1.len());
+    let mut map = HashMap::new();
+    let mut hash = DefaultHasher::new();
+    vec1.hash(&mut hash);
+
+    let result = hash.finish();
+    map.insert(result, vec1);
+    println!("{}", result);
+
+
+    let mut hash2 = DefaultHasher::new();
+    vec2.hash(&mut hash2);
+    println!("{}", hash.finish());
+
+
+
+    let a = 2;
+    let b = 3;
+
+    dbg!(a << b);
+
+    let data = "Some data!";
+    fs::write("/tmp/foo", data).expect("Unable to write file");
+    let data = fs::read("/etc/hosts").expect("Unable to read file");
+    println!("{}", data.len());
+
 }

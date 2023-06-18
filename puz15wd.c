@@ -4,6 +4,7 @@
 /**************************************************/
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 #define  FALSE           0
 #define  TRUE            1
@@ -11,18 +12,15 @@
 
 #define  WDTBL_SIZE  24964 /* WalkingDistance TableSize */
 
-typedef  unsigned __int64  u64;
-typedef u64 uint64_t;
+//typedef  unsigned __int64  u64;
+typedef uint64_t u64;
+
 
 int   TABLE[BOARD_WIDTH][BOARD_WIDTH];
 int   WDTOP, WDEND;
 u64   WDPTN[WDTBL_SIZE];                 /* �ǖʃp�^�[�� */
 char  WDTBL[WDTBL_SIZE];                 /* �ŒZ�萔(WD) */
 short WDLNK[WDTBL_SIZE][2][BOARD_WIDTH]; /* �o���������N */
-
-/*********************************************/
-/* �T�����ʂ̃e�[�u�����f�B�X�N�ɕۑ�����    */
-/*********************************************/
 void WriteDisk(void)
 {
     int  i, j, k, work[8];
@@ -50,14 +48,14 @@ void WriteDisk(void)
     fclose(fp);
 }
 /*********************************************/
-/* �p�^�[���̓o�^�Ƒo���������N�̌`��        */
+/* パターンの登録と双方向リンクの形成        */
 /*********************************************/
 void WriteTable(char count, int vect, int group)
 {
     int  i, j, k;
     u64  table;
 
-    /* ����p�^�[����T�� */
+    /* 同一パターンを探す */
     table =0;
     for (i=0; i<4; i++)
     for (j=0; j<4; j++)
@@ -65,7 +63,7 @@ void WriteTable(char count, int vect, int group)
     for (i=0; i<WDEND; i++)
         if (WDPTN[i] == table) break;
 
-    /* �V�K�p�^�[���o�^ */
+    /* 新規パターン登録  New pattern registration */
     if (i == WDEND) {
         WDPTN[WDEND] = table;
         WDTBL[WDEND] = count;
@@ -75,13 +73,13 @@ void WriteTable(char count, int vect, int group)
             WDLNK[i][j][k] = WDTBL_SIZE;
     }
 
-    /* �o���������N���`�������� */
+    /* 双方向リンクを形成させる orm a two-way link */
     j = WDTOP - 1;
     WDLNK[j][vect    ][group] = (short)i;
     WDLNK[i][vect ^ 1][group] = (short)j;
 }
 /*********************************************/
-/* ���D��T����WalkingDistance�����߂�       */
+/* 幅優先探索でWalkingDistanceを求める       */
 /*********************************************/
 void Simuration(void)
 {
@@ -89,34 +87,41 @@ void Simuration(void)
     char count;
     u64  table;
 
-    /* �����ʂ���� */
+    /* 初期面を作る  make an initial surface */
     for (i=0; i<4; i++)
     for (j=0; j<4; j++)
         TABLE[i][j] = 0;
     TABLE[0][0] = TABLE[1][1] = TABLE[2][2] = 4;
     TABLE[3][3] = 3;
+
+    
     table =0;
     for (i=0; i<4; i++)
     for (j=0; j<4; j++)
         table = (table << 3) | TABLE[i][j];
 
-    /* �����ʂ�o�^ */
+    // Right shift 3 bits to always be comparing to table = 000
+    
+    /* printf("table%" PRIu64 "\n", table); */
+    /* return; */
+    
+    /* 初期面を登録  register initial surface */
     WDPTN[0] = table;
     WDTBL[0] = 0;
     for (j=0; j<2; j++)
     for (k=0; k<4; k++)
         WDLNK[0][j][k] = WDTBL_SIZE;
 
-    /* ���D��T�� */
+    /* 幅優先探索 */
     WDTOP=0; WDEND=1;
     while (WDTOP < WDEND) {
-        /* TABLE[][]�Ăяo�� */
+        /* TABLE[][]呼び出し */
         table = WDPTN[WDTOP];
         count = WDTBL[WDTOP];
         WDTOP++;
         count++;
 
-        /* TABLE[][]�Č� */
+        /* TABLE[][]再現  table reproduction*/
         for (i=3; i>=0; i--) {
             piece = 0;
             for (j=3; j>=0; j--) {
@@ -127,7 +132,7 @@ void Simuration(void)
             if (piece == 3) space = i;
         }
 
-        /* 0:�����Ɉړ� */
+        /* 0:駒を上に移動  move piece up*/
         if ((piece = space + 1) < 4) {
             for (i=0; i<4; i++) {
                 if (TABLE[piece][i]) {
@@ -140,27 +145,81 @@ void Simuration(void)
             }
         }
 
-        /* 1:������Ɉړ� */
+        /* 1:駒を下に移動 move piece down*/
         if ((piece = space - 1) >= 0) {
             for (i=0; i<4; i++) {
                 if (TABLE[piece][i]) {
                     TABLE[piece][i]--;
-                    TABLE[space][i]++;
-                    WriteTable(count, 1, i);
-                    TABLE[piece][i]++;
+                    TABLE[space][i]++; // modify the wanted one
+                    WriteTable(count, 1, i); // save it 
+                    TABLE[piece][i]++; // turn it back 
                     TABLE[space][i]--;
                 }
             }
         }
     }
 }
+
+#define  IDTBL_SIZE    106 
+char  IDTBL[IDTBL_SIZE];      
+
 int main(void)
 {
     printf("making......\n");
     Simuration();
+    
     printf("saving......\n");
     WriteDisk();
     printf("finish!\n");
 
+    int   i, j, k, nextd;
+    u64   table;
+    char  *filename = "puz15wd.db";
+    FILE  *fp;
+
+    /* IDTBL[] */
+    for (i=0; i<106; i++)
+        IDTBL[i] = (char)((i / 3) + (i % 3));
+
+    
+    fp = fopen(filename, "rb");
+    for (i=0; i<WDTBL_SIZE; i++) {
+        /* WDPTN */
+        table = 0;
+        for (j=0; j<8; j++){
+          //int val = getc(fp);
+          table = (table << 8) | getc(fp);
+          // printf("%hu\n", table);
+        }
+        WDPTN[i] = table;
+        //printf("table%" PRIu64 "\n", table);
+        //printf("table%d\n", table);
+        /* WDTBL */
+        WDTBL[i] = (char)getc(fp);
+        //printf("WDL%d\n", WDTBL[i]);
+        /* WDLNK */
+        for (j=0; j<2; j++)
+        for (k=0; k<4; k++) {
+            nextd = getc(fp);
+            WDLNK[i][j][k] = (short)((nextd << 8) | getc(fp));
+        }
+    }
+    fclose(fp);
+
+    /* for (i=0; i<106; i++) */
+    /*     printf("|%d|", IDTBL[i]); */
+
+    
+    for (i = 0 ; i < 24964 ; i ++){
+      for (j = 0 ; j < 2 ; j ++) {
+        for (k = 0 ; k < 4; k++){
+          printf("|%hu|", WDLNK[i][j][k]);
+        }
+        printf("%s", " ");
+      }
+      printf("\n");
+    }
+
+    //printf("\n\nHello, my love.\n");
     return 0;
 }
