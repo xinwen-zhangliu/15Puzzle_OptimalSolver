@@ -93,7 +93,7 @@ impl WD {
             depth = self.moves[self.top];
             depth += 1;
             self.top += 1;
-            println!("{:b}", table);
+           // println!("{:b}", table);
             for i in (0..n).rev() {
                 piece = 0; // reset the piece
                 for j in (0..n).rev() {
@@ -111,13 +111,13 @@ impl WD {
                 }
             }
 
-            println!("{:?}", TABLE);
+            //println!("{:?}", TABLE);
             //break;
-            println!("{}", space);
+            //println!("{}", space);
 
             // move piece up
             if space + 1 < 4 as i8 {
-                println!("move piece up");
+               // println!("move piece up");
                 piece = (space + 1) as usize;
                 for i in 0..n {
                     if TABLE[piece][i] > 0 {
@@ -168,7 +168,7 @@ impl WD {
         piece: usize,
         TABLE: &mut Vec<Vec<u8>>,
     ) {
-        println!("writelink");
+       // println!("writelink");
         let mut table: u64 = 0;
         for i in 0..4 {
             for j in 0..4 {
@@ -184,9 +184,9 @@ impl WD {
             counter += 1;
         }
         //        counter -= 1;
-        println!("{}, {}", counter, self.end);
+       // println!("{}, {}", counter, self.end);
         if counter == self.end {
-            println!("{:b}", table);
+            //println!("{:b}", table);
             self.patterns[self.end] = table;
             self.moves[self.end] = moves;
             self.end += 1;

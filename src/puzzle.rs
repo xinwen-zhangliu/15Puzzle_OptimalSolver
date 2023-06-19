@@ -1,4 +1,9 @@
-use std::fmt;
+use crate::{ walkingDist::WD};
+use std::{fmt, cmp::Ordering};
+use std::{
+    collections::hash_map::DefaultHasher,
+    hash::{Hash, Hasher},
+};
 
 use rand::{rngs::StdRng, SeedableRng};
 use rand_distr::{Distribution, Uniform};
@@ -7,11 +12,34 @@ use rand_distr::{Distribution, Uniform};
 pub struct Puzzle {
     state: Vec<Vec<u8>>,
     path: String,
-    scramble: String,
+    //scramble: String,
     space: (usize, usize),
     n: usize,
     depth: u8,
+    eval : u8
 }
+
+impl Ord for Puzzle {
+    fn cmp(&self, other: &Self) -> Ordering {
+        (self.eval + self.depth).cmp(&(other.eval + other.depth))
+    }
+}
+
+impl PartialOrd for Puzzle {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Puzzle {
+    fn eq(&self, other: &Self) -> bool {
+        self.depth == other.depth &&
+        self.eval == other.eval
+    }
+}
+
+impl Eq for Puzzle { }
+
 
 impl fmt::Display for Puzzle {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -41,15 +69,18 @@ impl Puzzle {
         Puzzle {
             state: vec![vec![0u8; n]; n],
             path: "".to_owned(),
-            scramble: "".to_owned(),
+            //scramble: "".to_owned(),
             space: (3, 3),
             n,
             depth: 0,
+            eval :0
         }
     }
 
+    
+
     /// Initializes the puzzle in solved state
-    fn initialize_puzzle(&mut self) {
+    pub fn initialize_puzzle(&mut self) {
         for i in 0..self.state[0].len() {
             self.state[0][i] = (i * 4 + 1) as u8;
             self.state[1][i + 1] = (i * 4 + 2) as u8;
@@ -70,9 +101,15 @@ impl Puzzle {
         for i in 0..n {
             for j in 0..n {
                 self.state[i][j] = numbers[counter];
+                if numbers[counter] == 0 {
+                    self.space.0 = i;
+                    self.space.1 = j;
+                }
                 counter += 1;
             }
         }
+
+        
     }
 
     ///
@@ -88,10 +125,26 @@ impl Puzzle {
         state
     }
 
+
+    pub fn get_path(&self) -> String {
+        self.path.clone()
+    }
+
+    pub fn get_eval(&mut self, wd : &mut WD) ->  u8{
+        let bin_v =  self.wd_v(4);
+        let bin_h = self.wd_h(4);
+        let wd = wd.get_moves(bin_v) + wd.get_moves(bin_h);
+
+        let md = self.manhattan_dist(4) / 3;
+        let lc = self.linear_conflict();
+
+        (wd + lc as u8 + md as u8)
+        
+    }
+
     /// Determines the Manhattan distance of a state
     pub fn manhattan_dist(&self, n: usize) -> u32 {
-        dbg!(&self.state);
-
+        
         let mut sum: u32 = 0;
         for i in 0..n {
             for j in 0..n {
@@ -181,9 +234,11 @@ impl Puzzle {
         lc
     }
 
+    
+    
     /// Scrambles the puzzle with n random moves
     pub fn scramble(&mut self, n: usize, size: usize) {
-        let mut r = StdRng::seed_from_u64(42);
+        let mut r = StdRng::seed_from_u64(1234);
         let moves = Uniform::from(1..4);
         let mut previous = moves.sample(&mut r);
         let mut next = moves.sample(&mut r);
@@ -238,8 +293,30 @@ impl Puzzle {
         rep
     }
 
+    pub fn hasher(&mut self) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        self.state.hash(&mut hasher);
+        hasher.finish()
+    }
+
+
+     /// Returns the binary representation of a table
+    pub fn get_bin(&self) -> u64 {
+        let mut table: u64 = 0;
+        for i in 0..4 {
+            for j in 0..4 {
+                table = (table << 3) | self.state[i][j] as u64;
+            }
+        }
+        table
+    }
+    
     pub fn set_depth(&mut self, depth: u8) {
         self.depth = depth;
+    }
+
+    pub fn get_depth(&self) -> u8 {
+        self.depth
     }
 
     pub fn set_space(&mut self, i: usize, j: usize) {
@@ -270,6 +347,7 @@ impl Puzzle {
                         &mut self.state,
                     );
                     self.set_space(self.space.0 + 1, self.space.1);
+                    self.path.push_str("U");
                     return true;
                 }
             }
@@ -284,6 +362,7 @@ impl Puzzle {
                         &mut self.state,
                     );
                     self.set_space(self.space.0, self.space.1 - 1);
+                    self.path.push_str("R");
                     return true;
                 }
             }
@@ -298,6 +377,7 @@ impl Puzzle {
                         &mut self.state,
                     );
                     self.set_space(self.space.0 - 1, self.space.1);
+                    self.path.push_str("D");
                     return true;
                 }
             }
@@ -312,6 +392,7 @@ impl Puzzle {
                         &mut self.state,
                     );
                     self.set_space(self.space.0, self.space.1 + 1);
+                    self.path.push_str("L");
                     return true;
                 }
             }
@@ -319,4 +400,22 @@ impl Puzzle {
             _ => return false,
         }
     }
+
+    pub fn set_eval(&mut self, eval : u8) {
+        self.eval = eval;
+    }
+
+    pub fn clone(&self) -> Puzzle {
+        Puzzle{
+            state: self.state.clone(),
+            path: self.path.clone(),
+            //scramble: self.scramble.clone(),
+            space: self.space.clone(),
+            n: self.n,
+            depth: self.depth,
+            eval : self.eval
+        }
+    }
+
+
 }

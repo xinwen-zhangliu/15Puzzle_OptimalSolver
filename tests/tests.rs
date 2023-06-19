@@ -6,7 +6,7 @@
 mod tests {
 
     //use float_cmp::approx_eq;
-    use optimal_solver_15puzzle::{puzzle::Puzzle, wd::WD};
+    use optimal_solver_15puzzle::{puzzle::Puzzle, walkingDist::WD};
 
     const N : usize = 4;
     
