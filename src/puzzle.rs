@@ -16,22 +16,27 @@ pub struct Puzzle {
 impl fmt::Display for Puzzle {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         //let mut str = "";
+        fmt.write_str("\n-------------\n")?;
         for i in 0..self.state.len() {
+            fmt.write_str("|")?;
             for j in 0..self.state[i].len() {
                 let str: &str = &self.state[i][j].to_string();
                 fmt.write_str(str)?;
                 if self.state[i][j] < 10 {
-                    fmt.write_str("  ")?;
-                } else {
                     fmt.write_str(" ")?;
+                } else {
+                    fmt.write_str("")?;
                 }
+                fmt.write_str("|")?;
             }
+            fmt.write_str("\n-------------\n")?;
         }
         Ok(())
     }
 }
 
 impl Puzzle {
+    /// Constructor for the Puzzle struct
     pub fn new(n: usize) -> Self {
         Puzzle {
             state: vec![vec![0u8; n]; n],
@@ -56,8 +61,12 @@ impl Puzzle {
     /// The state gets set according to an ordered string of numbers,
     /// representing the tiles.
     pub fn set_state(&mut self, state: &str, n: usize) {
+        let new_state = state.trim();
         let mut counter: usize = 0;
-        let numbers: Vec<u8> = state.split(" ").map(|x| x.parse::<u8>().unwrap()).collect();
+        let numbers: Vec<u8> = new_state
+            .split(" ")
+            .map(|x| x.parse::<u8>().unwrap())
+            .collect();
         for i in 0..n {
             for j in 0..n {
                 self.state[i][j] = numbers[counter];
@@ -122,40 +131,52 @@ impl Puzzle {
     /// relative to their goal location.
     pub fn linear_conflict(&self) -> u32 {
         let n = self.state[0].len();
-        let mut last_number;
-        //let mut index = 0;
-
+        let mut biggest = 0;
         let mut lc = 0;
-
+        // list containing the tiles that are in their goal row or column
+        let mut correct_l: Vec<u8> = Vec::new();
         // check rows
         for i in 0..n {
-            last_number = self.state[i][0];
             for j in 0..n {
-                if self.state[i][j] < last_number {
-                    //bigger = self.state[i][j];
-                    if self.state[i][j] / n as u8 == last_number / n as u8
-                        && last_number / n as u8 == i as u8
-                    {
-                        lc += 2;
-                    }
+                if self.state[i][j] as usize / n == i {
+                    correct_l.push(self.state[i][j]);
                 }
-                last_number = self.state[i][j];
             }
+
+            for k in 0..correct_l.len() {
+                if correct_l[k] >= biggest {
+                    biggest = correct_l[k];
+                }
+
+                if correct_l[k] < biggest {
+                    lc += 2;
+                }
+            }
+            biggest = 0;
+            correct_l.clear();
         }
+
+        biggest = 0;
 
         // check columns
         for j in 0..n {
-            last_number = self.state[0][j];
             for i in 0..n {
-                if self.state[i][j] < last_number {
-                    if self.state[i][j] % n as u8 == last_number % n as u8
-                        && last_number % n as u8 == j as u8
-                    {
-                        lc += 2;
-                    }
+                if self.state[i][j] as usize % n == j {
+                    correct_l.push(self.state[i][j]);
                 }
-                last_number = self.state[i][j];
             }
+
+            for k in 0..correct_l.len() {
+                if correct_l[k] >= biggest {
+                    biggest = correct_l[k];
+                }
+
+                if correct_l[k] < biggest {
+                    lc += 2;
+                }
+            }
+            biggest = 0;
+            correct_l.clear();
         }
         lc
     }

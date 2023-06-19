@@ -16,3 +16,7 @@ Cargo.lock
 
 # Emacs projectiles file
 .projectile
+
+
+# Output files 
+references/
