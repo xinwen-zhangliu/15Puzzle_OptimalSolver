@@ -5,8 +5,7 @@
 #[allow(non_snake_case)]
 mod tests {
 
-    use std::{fs, io, collections::BinaryHeap, cmp::Reverse};
-    
+    use std::{cmp::Reverse, collections::BinaryHeap, fs, io};
 
     //use float_cmp::approx_eq;
     use optimal_solver_15puzzle::{puzzle::Puzzle, walkingDist::WD};
@@ -35,51 +34,44 @@ mod tests {
         //let lines = file_contents.lines().collect::<Result<Vec<&str>, io::Error>>().unwrap();
         //        let lines : Lines = file_contents.lines();
 
-        let iter = file_contents.lines().into_iter();
-        
-        while counter < 1000 {
-            if counter % 10 == 0 {
-                match iter.unwrap().split_once(' ') {
-                    Some((key, value)) => {
-                        println!("key: {}", key);
-                        println!("value: {}", value);
-                        for i in 0..6 {
-                            next();
-                        }
-                    }
-                    None => {
-                        println!("expected a key-value pair");
-                    }
-                }
-            }
-            
-            
-            counter += 1;
+        let mut lines: Vec<String> = Vec::new();
+
+        for line in file_contents.lines() {
+            lines.push(line.trim().to_owned());
+
         }
 
-        
-        let mut cases = 
-       for line in   file_contents.lines(){
-            if counter % 10 == 0 {
-                match line.split_once(' ') {
-                    Some((key, value)) => {
-                        println!("key: {}", key);
-                        println!("value: {}", value);
-                       
-                    }
-                    None => {
-                        println!("expected a key-value pair");
-                    }
+        let mut cases: Vec<(String, u32, u32, u32, u32, u32, u32)> =
+            vec![("".to_owned(), 0u32, 0u32, 0u32, 0u32, 0u32, 0u32); 100];
+        for i in 0..100 {
+            let mut state: String = "".to_owned();
+            match lines[i*10].split_once(' ') {
+                Some((key, value)) => {
+                    state = value.to_owned();
+                    println!("{}", state);
                 }
+                None => {continue;}
             }
             
+            
+            cases[i] = (
+                state.trim().to_owned(),
+                lines[i*10 + 1].trim().parse::<u32>().unwrap(),
+                lines[i*10 + 4].trim().parse::<u32>().unwrap(),
+                lines[i*10 + 6].trim().parse::<u32>().unwrap(),
+                lines[i*10 + 7].trim().parse::<u32>().unwrap(),
+                lines[i*10 + 8].trim().parse::<u32>().unwrap(),
+                lines[i*10 + 9].trim().parse::<u32>().unwrap(),
+            );
+            println!("{:?} {}", cases[i], i);
+                
         }
     }
     #[test]
     fn minheap() {
         let mut minheap: BinaryHeap<Reverse<Puzzle>> = BinaryHeap::new();
 
-        for i in 0..10{
+        for i in 0..10 {
             let mut p = Puzzle::new(N);
             p.set_eval(i);
             p.set_depth(i);
@@ -89,7 +81,6 @@ mod tests {
         assert_eq!(minheap.pop().unwrap().0.get_depth(), 0)
     }
 
-    
     #[test]
     /// Tests Walking Distance
     fn test_wd() {
@@ -99,8 +90,4 @@ mod tests {
 
         wd.gen(N);
     }
-
-
-
-   
 }
