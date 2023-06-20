@@ -1,10 +1,11 @@
-use crate::{ walkingDist::WD};
-use std::{fmt, cmp::Ordering};
+use crate::walkingDist::WD;
+use std::{cmp::Ordering, fmt};
 use std::{
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
 };
 
+use rand::Rng;
 use rand::{rngs::StdRng, SeedableRng};
 use rand_distr::{Distribution, Uniform};
 
@@ -16,7 +17,7 @@ pub struct Puzzle {
     space: (usize, usize),
     n: usize,
     depth: u8,
-    eval : u8
+    eval: u8,
 }
 
 impl Ord for Puzzle {
@@ -33,13 +34,11 @@ impl PartialOrd for Puzzle {
 
 impl PartialEq for Puzzle {
     fn eq(&self, other: &Self) -> bool {
-        self.depth == other.depth &&
-        self.eval == other.eval
+        self.depth == other.depth && self.eval == other.eval
     }
 }
 
-impl Eq for Puzzle { }
-
+impl Eq for Puzzle {}
 
 impl fmt::Display for Puzzle {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -73,11 +72,9 @@ impl Puzzle {
             space: (3, 3),
             n,
             depth: 0,
-            eval :0
+            eval: 0,
         }
     }
-
-    
 
     /// Initializes the puzzle in solved state
     pub fn initialize_puzzle(&mut self) {
@@ -108,8 +105,6 @@ impl Puzzle {
                 counter += 1;
             }
         }
-
-        
     }
 
     ///
@@ -125,26 +120,74 @@ impl Puzzle {
         state
     }
 
+    pub fn perform_moves(&mut self, moves: String) {
+        for m in moves.chars() {
+            match m {
+                'U' => {
+                    if !self.move_tile(1, 4){
+                        
+                    }
+                    
+                }
+                'D' => {
+                    self.move_tile(3, 4);
+                }
+                'L' => {
+                    self.move_tile(4, 4);
+                }
+                'R' => {
+                    self.move_tile(2, 4);
+                }
+                _ => {}
+            }
+        }
+    }
 
     pub fn get_path(&self) -> String {
         self.path.clone()
     }
 
-    pub fn get_eval(&mut self, wd : &mut WD) ->  u8{
-        let bin_v =  self.wd_v(4);
+    pub fn get_eval(&mut self, wd: &mut WD) -> u8 {
+        let bin_v = self.wd_v(4);
         let bin_h = self.wd_h(4);
         let wd = wd.get_moves(bin_v) + wd.get_moves(bin_h);
 
-        let md = self.manhattan_dist(4) / 3;
+        let md = self.manhattan_dist(4);
         let lc = self.linear_conflict();
 
-        (wd + lc as u8 + md as u8)
-        
+        // let mut TABLE: Vec<Vec<u8>> = vec![vec![0u8; self.n]; self.n]; // initializing in zeros
+        // println!("bin_h {}", bin_h);
+        // let mut table = bin_h;
+        // let mask = (1 << 3) - 1;
+        // for i in (0..self.n).rev() {
+        //     for j in (0..self.n).rev() {
+        //         TABLE[i][j] = (table & mask) as u8;
+        //         table >>= 3;
+        //     }
+        // }
+        // println!("{:?}", TABLE);
+        // println!("bin_v {:b}", bin_v);
+        // let mut table = bin_v;
+        // let mask = (1 << 3) - 1;
+        // for i in (0..self.n).rev() {
+        //     for j in (0..self.n).rev() {
+        //         TABLE[i][j] = (table & mask) as u8;
+        //         table >>= 3;
+        //     }
+        // }
+        // println!("{:?}", TABLE);
+        // println!("wd {}", wd);
+        // println!("md {}", md);
+        // println!("lc {}", lc);
+        (wd + lc as u8 + (md / 3) as u8)
     }
 
+    pub fn get_current_eval(&self) -> u8{
+        self.eval
+    }
+    
     /// Determines the Manhattan distance of a state
     pub fn manhattan_dist(&self, n: usize) -> u32 {
-        
         let mut sum: u32 = 0;
         for i in 0..n {
             for j in 0..n {
@@ -234,24 +277,45 @@ impl Puzzle {
         lc
     }
 
-    
-    
     /// Scrambles the puzzle with n random moves
     pub fn scramble(&mut self, n: usize, size: usize) {
-        let mut r = StdRng::seed_from_u64(1234);
-        let moves = Uniform::from(1..4);
-        let mut previous = moves.sample(&mut r);
-        let mut next = moves.sample(&mut r);
+        let mut r = StdRng::seed_from_u64(24556);
+        // let moves = Uniform::from(1..4);
+        let mut previous: usize;
+        let mut next: usize = r.gen::<usize>() % 4 + 1;
+        let mut i = 0;
+        while i < n {
+            if self.move_tile(next, size) {
+                i += 1;
+            }
+            previous = next;
+            while previous == next {
+                previous = next;
+                next = r.gen::<usize>() % 4 + 1;
+            }
+        }
 
-        for i in 0..n {
-            while !self.move_tile(next, size) {
-                while previous == next {
-                    next = moves.sample(&mut r);
+        // for _i in 0..n {
+        //     while !self.move_tile(next, size) {
+        //         previous = next;
+        //         next = r.gen::<usize>() % 4 + 1;
+        //     }
+
+        //     //previous = next;
+
+        // }
+    }
+
+    pub fn is_goal(&self) -> bool {
+        for i in 0..self.n {
+            for j in 0..self.n {
+                let correct = i * self.n + j;
+                if self.state[i][j] as usize != correct {
+                    return false;
                 }
             }
-            next = moves.sample(&mut r);
-            previous = next;
         }
+        true
     }
 
     /// Returns the horizontal walking distance representation of a state
@@ -260,13 +324,17 @@ impl Puzzle {
         let mut table = vec![vec![0u8; n]; n];
         for i in 0..n {
             for j in 0..n {
+                if self.state[i][j] == 0 {
+                    continue;
+                }
                 let row = self.state[i][j] / n as u8;
                 table[i][row as usize] += 1;
             }
         }
+        
 
-        for i in (0..n).rev() {
-            for j in (0..n).rev() {
+        for i in 0..4 {
+            for j in 0..4 {
                 rep = (rep << 3) | table[i][j] as u64;
             }
         }
@@ -280,13 +348,16 @@ impl Puzzle {
         let mut table = vec![vec![0u8; n]; n];
         for j in 0..n {
             for i in 0..n {
+                if self.state[i][j] == 0 {
+                    continue;
+                }
                 let column = self.state[i][j] % n as u8;
                 table[j][column as usize] += 1;
             }
         }
-
-        for i in (0..n).rev() {
-            for j in (0..n).rev() {
+        //println!("{:?}", table);
+        for i in 0..n {
+            for j in 0..n {
                 rep = (rep << 3) | table[i][j] as u64;
             }
         }
@@ -299,18 +370,17 @@ impl Puzzle {
         hasher.finish()
     }
 
+    /// Returns the binary representation of a table
+    // pub fn get_bin(&self) -> u64 {
+    //     let mut table: u64 = 0;
+    //     for i in 0..4 {
+    //         for j in 0..4 {
+    //             table = (table << 4) | self.state[i][j] as u64;
+    //         }
+    //     }
+    //     table
+    // }
 
-     /// Returns the binary representation of a table
-    pub fn get_bin(&self) -> u64 {
-        let mut table: u64 = 0;
-        for i in 0..4 {
-            for j in 0..4 {
-                table = (table << 3) | self.state[i][j] as u64;
-            }
-        }
-        table
-    }
-    
     pub fn set_depth(&mut self, depth: u8) {
         self.depth = depth;
     }
@@ -401,21 +471,19 @@ impl Puzzle {
         }
     }
 
-    pub fn set_eval(&mut self, eval : u8) {
+    pub fn set_eval(&mut self, eval: u8) {
         self.eval = eval;
     }
 
     pub fn clone(&self) -> Puzzle {
-        Puzzle{
+        Puzzle {
             state: self.state.clone(),
             path: self.path.clone(),
             //scramble: self.scramble.clone(),
             space: self.space.clone(),
             n: self.n,
             depth: self.depth,
-            eval : self.eval
+            eval: self.eval,
         }
     }
-
-
 }

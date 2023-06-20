@@ -37,6 +37,7 @@ impl WD {
         }
     }
 
+    //
     /// Creates the walking distance database
     pub fn gen(&mut self, n: usize) {
     
@@ -110,6 +111,13 @@ impl WD {
                     space = i as i8;
                 }
             }
+            // let mut found = false;
+            // if space == 0 && TABLE[0][0] ==2 && TABLE[0][1] == 1 && TABLE[1][1] ==2 && TABLE[1][2]==1 && TABLE[1][3]==1 && TABLE[3][3]==1
+            //     && TABLE[3][2] == 2 && TABLE[3][1] == 1
+            // {
+            //     found =true;
+            //     println!("{:?}", TABLE)
+            // }
 
             //println!("{:?}", TABLE);
             //break;
@@ -163,7 +171,7 @@ impl WD {
     pub fn write_link(
         &mut self,
         //n: usize,
-        moves: u8,
+        depth: u8,
         vect: usize,
         piece: usize,
         TABLE: &mut Vec<Vec<u8>>,
@@ -176,6 +184,14 @@ impl WD {
             }
         }
 
+        // let mut found = false;
+        //     if  TABLE[0][0] ==2 && TABLE[0][1] == 1 && TABLE[0][2] == 0&& TABLE[0][3]== 0 && TABLE[1][1] ==2 && TABLE[1][2]==1 && TABLE[1][3]==1 && TABLE[3][3]==1
+        //         && TABLE[3][2] == 2 && TABLE[3][1] == 1
+        //     {
+        //         found =true;
+        //         println!("{:?}", TABLE)
+        //     }
+
         let mut counter: usize = 0;
         while counter < self.end {
             if self.patterns[counter] == table {
@@ -183,12 +199,14 @@ impl WD {
             }
             counter += 1;
         }
-        //        counter -= 1;
-       // println!("{}, {}", counter, self.end);
+        
         if counter == self.end {
-            //println!("{:b}", table);
+            // if found {
+            //     println!("{} ", table);
+            // println!("{:b}", table);
+            // }
             self.patterns[self.end] = table;
-            self.moves[self.end] = moves;
+            self.moves[self.end] = depth;
             self.end += 1;
             for j in 0..2 {
                 for k in 0..4 {
@@ -206,7 +224,9 @@ impl WD {
     pub fn get_moves(&self, pattern: u64) -> u8 {
         let mut moves: u8 = 80;
         for i in 0..self.patterns.len() {
+            //println!("{} {}", self.patterns[i], self.moves[i]);
             if self.patterns[i] == pattern {
+                
                 moves = self.moves[i];
             }
         }
