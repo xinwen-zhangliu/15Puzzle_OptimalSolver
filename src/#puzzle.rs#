@@ -1,4 +1,4 @@
-use crate::walkingDist::WD;
+  use crate::walkingDist::WD;
 use std::{cmp::Ordering, fmt};
 use std::{
     collections::hash_map::DefaultHasher,
